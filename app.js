@@ -43,21 +43,18 @@
       label: 'Sledování',
       title: 'Dobrý web nemusí být *drahý* ani složitý.',
       body: 'Navrhneme ho, postavíme a postaráme se o něj. Online do tří týdnů.',
-      keyword: '',
       cta: 'Sleduj nás pro další tipy, jak z webu udělat obchodníka, který maká 24/7.',
     },
     comment: {
       label: 'Slovo do komentáře',
       title: 'Chceš vědět, co *brzdí* tvůj web?',
       body: 'Pošleme ti zdarma krátkou analýzu s konkrétními doporučeními.',
-      keyword: 'WEB',
-      cta: 'Napiš to slovo do komentáře a ozveme se ti.',
+      cta: 'Napiš *WEB* do komentáře a ozveme se ti.',
     },
     save: {
       label: 'Uložení',
       title: 'Ulož si to *na později.*',
       body: 'Až budeš řešit nový web nebo redesign, tenhle checklist se ti bude hodit.',
-      keyword: '',
       cta: 'Ulož si post a pošli ho někomu, kdo právě řeší web.',
     },
   };
@@ -103,8 +100,8 @@
   };
 
   function pickTemplate(key) {
-    const { title, body, keyword, cta } = PROMO_TEMPLATES[key];
-    return { title, body, keyword, cta };
+    const { title, body, cta } = PROMO_TEMPLATES[key];
+    return { title, body, cta };
   }
 
   // ---------- Stav ----------
@@ -126,7 +123,7 @@
         brand: migrateBrand({ ...base.brand, ...saved.brand }),
         hook: { ...base.hook, ...saved.hook },
         content: base.content.map((c, i) => ({ ...c, ...(saved.content || [])[i] })),
-        promo: { ...base.promo, ...saved.promo },
+        promo: migratePromo({ ...base.promo, ...saved.promo }),
         count: clampCount(saved.count),
       };
     } catch (e) {
@@ -138,6 +135,18 @@
   function migrateBrand(brand) {
     if (brand.name === 'ProjectWO') brand.name = 'Project Two';
     return brand;
+  }
+
+  /** Dřív bylo slovo do komentáře zvlášť (oranžová pilulka) → teď *akcent* přímo ve výzvě. */
+  function migratePromo(promo) {
+    const kw = (promo.keyword || '').trim();
+    delete promo.keyword;
+    if (!kw || (promo.cta || '').includes(`*${kw}*`)) return promo;
+    const cta = promo.cta || '';
+    promo.cta = cta.includes('to slovo')
+      ? cta.replace('to slovo', `*${kw}*`)
+      : `Napiš *${kw}* do komentáře. ${cta}`.trim();
+    return promo;
   }
 
   function saveState() {
@@ -587,23 +596,13 @@
     ctx.textBaseline = 'middle';
     ctx.fillText(state.brand.instagram || state.brand.website, M, y);
 
-    if (rightKind === 'pill') {
-      // Výrazné tlačítko "Swipe →" na titulním slajdu
-      const label = state.hook.swipe || 'Swipe';
+    if (rightKind === 'hook') {
+      // Titulní slajd: výraznější "Swipe →" (bílý text, oranžová šipka), bez rámečku
       ctx.font = font('bold', 28);
-      setTracking(ctx, 1);
-      const tw = ctx.measureText(label).width;
-      const ph = 68;
-      const pw = tw + 48 + 46 + 24;
-      const px = W - M - pw;
-      ctx.fillStyle = C.ember;
-      roundRectPath(ctx, px, y - ph / 2, pw, ph, ph / 2);
-      ctx.fill();
-      ctx.fillStyle = '#0D0D0D';
-      ctx.textAlign = 'left';
-      ctx.fillText(label, px + 34, y + 1);
-      setTracking(ctx, 0);
-      drawIcon(ctx, 'arrow', px + pw - 46, y, 34, '#0D0D0D');
+      ctx.fillStyle = C.white;
+      ctx.textAlign = 'right';
+      ctx.fillText(state.hook.swipe || 'Swipe', W - M - 56, y);
+      drawIcon(ctx, 'arrow', W - M - 17, y, 34, C.ember);
     } else if (rightKind === 'subtle') {
       // Jemná připomínka, že pokračuje další slajd
       ctx.font = font('regular', 26);
@@ -654,7 +653,7 @@
       return blocks;
     }, 230, H - 220, 0.62);
 
-    drawFooter(ctx, 'pill', idx, n);
+    drawFooter(ctx, 'hook', idx, n);
   }
 
   /** Karta s mikro-výzvou k interakci; vrací svou výšku. */
@@ -739,7 +738,6 @@
    */
   function drawPromoSlide(ctx, slide, idx, n) {
     const d = slide.data;
-    const keyword = (d.keyword || '').trim();
 
     drawHeader(ctx);
 
@@ -756,9 +754,11 @@
           text: d.body, size: 40 * s, color: '#A1A1A6', lineHeight: 1.38, maxWidth: 840,
         }));
       }
-      if (keyword || d.cta) {
+      if (d.cta) {
         blocks.push(spacer(64 * s));
-        blocks.push(ctaRow(ctx, keyword, d.cta, s));
+        blocks.push(textBlock(ctx, {
+          text: d.cta, family: 'bold', size: 42 * s, color: C.white, lineHeight: 1.22, tracking: -0.5,
+        }));
       }
       if (d.follow) {
         blocks.push(spacer(40 * s));
@@ -770,48 +770,6 @@
     }, 230, H - 220, 0.62);
 
     drawFooter(ctx, 'site', idx, n);
-  }
-
-  /** Oranžová pilulka se slovem do komentáře + text výzvy vedle ní. */
-  function ctaRow(ctx, keyword, cta, s) {
-    let pill = null;
-    if (keyword) {
-      const size = 44 * s;
-      const label = keyword.toUpperCase();
-      ctx.font = font('bold', size);
-      setTracking(ctx, 2);
-      const tw = Math.min(ctx.measureText(label).width, 420);
-      setTracking(ctx, 0);
-      const ph = size * 1.9;
-      pill = { size, label, tw, w: tw + ph * 0.9, h: ph };
-    }
-    const gap = pill ? 32 * s : 0;
-    const textX = M + (pill ? pill.w + gap : 0);
-    const text = cta ? textBlock(ctx, {
-      text: cta, family: 'bold', size: 34 * s, color: C.white, lineHeight: 1.25,
-      x: textX, maxWidth: W - M - textX,
-    }) : null;
-    const h = Math.max(pill ? pill.h : 0, text ? text.h : 0);
-
-    return {
-      h,
-      draw(y) {
-        if (pill) {
-          const py = y + (h - pill.h) / 2;
-          ctx.fillStyle = C.ember;
-          roundRectPath(ctx, M, py, pill.w, pill.h, pill.h / 2);
-          ctx.fill();
-          ctx.font = font('bold', pill.size);
-          setTracking(ctx, 2);
-          ctx.fillStyle = '#0D0D0D';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(pill.label, M + pill.w / 2 + 1, py + pill.h / 2 + 2, pill.tw);
-          setTracking(ctx, 0);
-        }
-        if (text) text.draw(y + (h - text.h) / 2);
-      },
-    };
   }
 
   function renderSlide(canvas, slide, idx, n) {
@@ -907,8 +865,7 @@
           { path: 'promo.template', label: 'Šablona', type: 'select', options: templateOptions },
           { path: 'promo.title', label: 'Pointa / shrnutí', type: 'textarea', rows: 2, hint: '*Slovo* v hvězdičkách = akcentová kurzíva.' },
           { path: 'promo.body', label: 'Doplňující text', type: 'textarea', rows: 2 },
-          { path: 'promo.keyword', label: 'Slovo do komentáře (volitelné)', maxlength: 20 },
-          { path: 'promo.cta', label: 'Výzva k akci', type: 'textarea', rows: 2 },
+          { path: 'promo.cta', label: 'Výzva k akci', type: 'textarea', rows: 2, hint: 'Slovo do komentáře dej do hvězdiček: Napiš *WEB* do komentáře.' },
           { path: 'promo.follow', label: 'Výzva ke sledování', maxlength: 60 },
         ], 'slide-editor--promo'));
       }
