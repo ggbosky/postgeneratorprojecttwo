@@ -139,13 +139,8 @@ code {
 
 .logo-mark {
   flex: none;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  border: 1px solid var(--border-strong);
-  background:
-    linear-gradient(135deg, transparent 46%, var(--text) 46%, var(--text) 54%, transparent 54%),
-    var(--surface);
+  width: auto;
+  height: 30px;
 }
 
 .pill {

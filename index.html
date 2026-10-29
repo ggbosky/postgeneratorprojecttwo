@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ProjectWO – Carousel Generator</title>
+  <title>Project Two – Carousel Generator</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='20 60 758 768'%3E%3Cpath fill='%23FF590E' d='M222 60H630L778 205V378L20 828V605L625 258H22Z M400 632H778V828H82Z'/%3E%3C/svg%3E">
   <meta name="description" content="Generátor virálních carousel postů 1080×1350 px pro Instagram a LinkedIn.">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="topbar">
     <div class="topbar__brand">
-      <span class="logo-mark" aria-hidden="true"></span>
+      <svg class="logo-mark" viewBox="20 60 758 768" aria-hidden="true"><path fill="#FF590E" d="M222 60H630L778 205V378L20 828V605L625 258H22Z M400 632H778V828H82Z"/></svg>
       <div>
-        <h1>ProjectWO <span class="muted">Carousel Generator</span></h1>
+        <h1>Project Two <span class="muted">Carousel Generator</span></h1>
         <p class="muted small">1080 × 1350 px · 4:5 · Instagram &amp; LinkedIn</p>
       </div>
     </div>
@@ -53,7 +54,7 @@
         <div class="grid-2">
           <label class="field">
             <span class="label">Název značky</span>
-            <input type="text" id="brandName" value="ProjectWO" maxlength="40">
+            <input type="text" id="brandName" value="Project Two" maxlength="40">
           </label>
           <label class="field">
             <span class="label">Web</span>
@@ -65,16 +66,16 @@
           </label>
           <label class="field">
             <span class="label">LinkedIn</span>
-            <input type="text" id="brandLinkedin" value="ProjectWO" maxlength="40">
+            <input type="text" id="brandLinkedin" value="Project Two" maxlength="40">
           </label>
         </div>
         <div class="field">
-          <span class="label">Logo (volitelné, PNG/SVG – světlé na tmavé pozadí)</span>
+          <span class="label">Vlastní logo (volitelné – nahradí výchozí logo Project Two)</span>
           <div class="file-row">
             <input type="file" id="logoInput" accept="image/png,image/svg+xml,image/webp,image/jpeg">
             <button type="button" class="btn btn--ghost btn--sm" id="logoClear" hidden>Odebrat logo</button>
           </div>
-          <p class="hint">Bez loga se na promo slajdu vykreslí textový wordmark.</p>
+          <p class="hint">Bez nahraného loga se použije oranžová značka + název značky. Logo je vlevo nahoře a velké na promo slajdu.</p>
         </div>
       </details>
 

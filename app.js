@@ -66,13 +66,12 @@
     count: 5,
     bg: '#0D0D0D',
     brand: {
-      name: 'ProjectWO',
+      name: 'Project Two',
       website: 'projectwo.com',
       instagram: '@projectwo',
-      linkedin: 'ProjectWO',
+      linkedin: 'Project Two',
     },
     hook: {
-      eyebrow: 'Web pro malé firmy',
       title: 'Tvůj web *ztrácí* zákazníky. Tady je proč.',
       subtitle: 'Chyby, které u malých firem vidíme nejčastěji – a jak je opravit.',
       swipe: 'Swipe',
@@ -125,7 +124,7 @@
       return {
         ...base,
         ...saved,
-        brand: { ...base.brand, ...saved.brand },
+        brand: migrateBrand({ ...base.brand, ...saved.brand }),
         hook: { ...base.hook, ...saved.hook },
         content: base.content.map((c, i) => ({ ...c, ...(saved.content || [])[i] })),
         promo: { ...base.promo, ...saved.promo },
@@ -134,6 +133,13 @@
     } catch (e) {
       return base;
     }
+  }
+
+  /** Staré výchozí názvy „ProjectWO“ → název z loga. */
+  function migrateBrand(brand) {
+    if (brand.name === 'ProjectWO') brand.name = 'Project Two';
+    if (brand.linkedin === 'ProjectWO') brand.linkedin = 'Project Two';
+    return brand;
   }
 
   function saveState() {
@@ -494,6 +500,55 @@
     ctx.fillRect(0, 0, W, H);
   }
 
+  // Značka Project Two – stejná SVG cesta jako v hlavičce projectwo.com (viewBox 20 60 758 768).
+  const LOGO_MARK = { path: 'M222 60H630L778 205V378L20 828V605L625 258H22Z M400 632H778V828H82Z', x: 20, y: 60, w: 758, h: 768, color: '#FF590E' };
+  let logoMarkPath = null;
+
+  /**
+   * Logo: oranžová značka + název písmem Inter Tight (jako na webu).
+   * Když je nahrané vlastní logo, použije se místo toho obrázek.
+   * Vrací { w, h, draw(x, cy) } – x je levý okraj, cy svislý střed.
+   */
+  function brandLogo(ctx, size) {
+    if (logoImage) {
+      const h = size * 1.6;
+      const w = (logoImage.width / logoImage.height) * h;
+      return { w, h, draw: (x, cy) => ctx.drawImage(logoImage, x, cy - h / 2, w, h) };
+    }
+    if (!logoMarkPath) logoMarkPath = new Path2D(LOGO_MARK.path);
+    const markH = size * 1.15;
+    const markW = markH * (LOGO_MARK.w / LOGO_MARK.h);
+    const gap = size * 0.5;
+    const name = state.brand.name || '';
+    const tracking = -size * 0.02;
+    ctx.font = font('bold', size);
+    setTracking(ctx, tracking);
+    const tw = name ? ctx.measureText(name).width : 0;
+    const capH = ctx.measureText('H').actualBoundingBoxAscent || size * 0.72;
+    setTracking(ctx, 0);
+    return {
+      w: markW + (name ? gap + tw : 0),
+      h: markH,
+      draw(x, cy) {
+        ctx.save();
+        ctx.translate(x, cy - markH / 2);
+        ctx.scale(markH / LOGO_MARK.h, markH / LOGO_MARK.h);
+        ctx.translate(-LOGO_MARK.x, -LOGO_MARK.y);
+        ctx.fillStyle = LOGO_MARK.color;
+        ctx.fill(logoMarkPath);
+        ctx.restore();
+        if (!name) return;
+        ctx.font = font('bold', size);
+        setTracking(ctx, tracking);
+        ctx.fillStyle = C.white;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText(name, x + markW + gap, cy + capH / 2);
+        setTracking(ctx, 0);
+      },
+    };
+  }
+
   // Tečky jsou na všech slajdech na stejném místě – při swipu „neskáčou“.
   const DOTS_Y = H - 98;
 
@@ -510,14 +565,9 @@
     }
   }
 
+  /** Logo vlevo nahoře. */
   function drawHeader(ctx) {
-    ctx.textBaseline = 'middle';
-    ctx.font = font('bold', 26);
-    setTracking(ctx, 5);
-    ctx.fillStyle = C.text;
-    ctx.textAlign = 'left';
-    ctx.fillText(state.brand.name.toUpperCase(), M, 112);
-    setTracking(ctx, 0);
+    brandLogo(ctx, 34).draw(M, 112);
   }
 
   function drawDivider(ctx, y) {
@@ -586,10 +636,6 @@
 
     layoutFit((s) => {
       const blocks = [];
-      if (d.eyebrow) {
-        blocks.push(eyebrowPill(ctx, d.eyebrow, M, 'left'));
-        blocks.push(spacer(44 * s));
-      }
       blocks.push(textBlock(ctx, {
         text: d.title, family: 'bold', size: 116 * s, color: C.white, lineHeight: 1.04, tracking: -1,
       }));
@@ -603,33 +649,6 @@
     }, 230, H - 220, 0.62);
 
     drawFooter(ctx, 'pill', idx, n);
-  }
-
-  function eyebrowPill(ctx, text, x, align) {
-    const label = String(text).toUpperCase();
-    ctx.font = font('regular', 24);
-    setTracking(ctx, 4);
-    const tw = ctx.measureText(label).width;
-    setTracking(ctx, 0);
-    const ph = 54;
-    const pw = Math.min(tw + 52, W - 2 * M);
-    return {
-      h: ph,
-      draw(y) {
-        const px = align === 'center' ? (W - pw) / 2 : x;
-        ctx.strokeStyle = C.lineStrong;
-        ctx.lineWidth = 2;
-        roundRectPath(ctx, px, y, pw, ph, ph / 2);
-        ctx.stroke();
-        ctx.font = font('regular', 24);
-        setTracking(ctx, 4);
-        ctx.fillStyle = C.text;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, px + 26, y + ph / 2 + 1);
-        setTracking(ctx, 0);
-      },
-    };
   }
 
   /** Karta s mikro-výzvou k interakci; vrací svou výšku. */
@@ -712,33 +731,19 @@
     const d = slide.data;
     const cx = W / 2;
 
-    drawHeader(ctx);
-
+    // Malé logo v hlavičce tu není – promo slajd má logo velké uprostřed.
     layoutFit((s) => {
       const blocks = [];
 
-      // --- Logo nebo textový wordmark ---
-      if (logoImage) {
-        const maxW = 600 * s;
-        const maxH = 190 * s;
-        const ratio = Math.min(maxW / logoImage.width, maxH / logoImage.height);
-        const lw = logoImage.width * ratio;
-        const lh = logoImage.height * ratio;
-        blocks.push({ h: lh, draw: (y) => ctx.drawImage(logoImage, cx - lw / 2, y, lw, lh) });
-      } else {
-        let size = 140 * s;
-        ctx.font = font('bold', size);
-        setTracking(ctx, -2);
-        while (ctx.measureText(state.brand.name).width > W - 2 * M && size > 40) {
-          size -= 4;
-          ctx.font = font('bold', size);
-        }
-        setTracking(ctx, 0);
-        blocks.push(textBlock(ctx, {
-          text: state.brand.name, family: 'bold', size, color: C.white, lineHeight: 1.05,
-          align: 'center', x: cx, tracking: -2,
-        }));
+      // --- Logo (zmenší se, aby se vešlo na šířku) ---
+      let size = 104 * s;
+      let logo = brandLogo(ctx, size);
+      while (logo.w > W - 2 * M && size > 30) {
+        size -= 4;
+        logo = brandLogo(ctx, size);
       }
+      const big = logo;
+      blocks.push({ h: big.h, draw: (y) => big.draw(cx - big.w / 2, y + big.h / 2) });
 
       if (state.brand.website) {
         blocks.push(spacer(14 * s));
@@ -789,7 +794,7 @@
       blocks.push(spacer(48 * s));
       blocks.push(actionRow(ctx, cx, s));
       return blocks;
-    }, 190, H - 280, 0.5);
+    }, 120, H - 280, 0.5);
 
     // Patička promo slajdu: výzva ke sledování + sítě, pod nimi tečky
     drawDivider(ctx, H - 256);
@@ -947,7 +952,6 @@
       const num = i + 1;
       if (slide.type === 'hook') {
         editorsEl.appendChild(editorCard(num, 'Hook / titulní', [
-          { path: 'hook.eyebrow', label: 'Štítek nad nadpisem', maxlength: 40 },
           { path: 'hook.title', label: 'Nadpis (hook)', type: 'textarea', rows: 3, hint: 'Krátce a zvědavě – ideálně do 8 slov. *Slovo v hvězdičkách* = akcentová kurzíva.' },
           { path: 'hook.subtitle', label: 'Podnadpis', type: 'textarea', rows: 2 },
           { path: 'hook.swipe', label: 'Indikátor posunu', maxlength: 20 },
