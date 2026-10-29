@@ -315,7 +315,7 @@
     return { lines, space };
   }
 
-  function drawLine(ctx, fonts, line, space, x, y, align) {
+  function drawLine(ctx, fonts, line, space, x, y, align, color) {
     let cx = x;
     if (align === 'center') cx = x - line.width / 2;
     else if (align === 'right') cx = x - line.width;
@@ -324,6 +324,7 @@
       if (i) cx += space;
       word.forEach((part) => {
         ctx.font = part.accent ? fonts.accent : fonts.base;
+        ctx.fillStyle = part.accent ? C.ember : color;
         ctx.fillText(part.text, cx, y);
         cx += ctx.measureText(part.text).width;
       });
@@ -355,7 +356,7 @@
         setTracking(ctx, tracking);
         ctx.fillStyle = color;
         ctx.textBaseline = 'alphabetic';
-        lines.forEach((ln, i) => drawLine(ctx, fonts, ln, space, x, y + lh * i + lh / 2 + capHalf, align));
+        lines.forEach((ln, i) => drawLine(ctx, fonts, ln, space, x, y + lh * i + lh / 2 + capHalf, align, color));
         setTracking(ctx, 0);
       },
     };
@@ -487,9 +488,10 @@
     ctx.fillStyle = state.bg;
     ctx.fillRect(0, 0, W, H);
 
-    const glow = ctx.createRadialGradient(W * 0.88, H * 0.06, 0, W * 0.88, H * 0.06, W * 0.95);
-    glow.addColorStop(0, 'rgba(255,255,255,0.075)');
-    glow.addColorStop(1, 'rgba(255,255,255,0)');
+    const glow = ctx.createRadialGradient(W * 0.9, H * 0.02, 0, W * 0.9, H * 0.02, W * 0.85);
+    glow.addColorStop(0, 'rgba(255,103,42,0.20)');
+    glow.addColorStop(0.45, 'rgba(255,103,42,0.07)');
+    glow.addColorStop(1, 'rgba(255,103,42,0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, W, H);
 
@@ -596,7 +598,7 @@
       const ph = 68;
       const pw = tw + 48 + 46 + 24;
       const px = W - M - pw;
-      ctx.fillStyle = C.white;
+      ctx.fillStyle = C.ember;
       roundRectPath(ctx, px, y - ph / 2, pw, ph, ph / 2);
       ctx.fill();
       ctx.fillStyle = '#0D0D0D';
@@ -678,7 +680,7 @@
     ctx.stroke();
 
     const iconCy = top + padY + iconBox / 2;
-    ctx.fillStyle = C.white;
+    ctx.fillStyle = C.ember;
     ctx.beginPath();
     ctx.arc(M + padX + iconBox / 2, iconCy, iconBox / 2, 0, Math.PI * 2);
     ctx.fill();
@@ -830,7 +832,7 @@
     return {
       h: ph,
       draw(y) {
-        ctx.fillStyle = C.white;
+        ctx.fillStyle = C.ember;
         roundRectPath(ctx, cx - pw / 2, y, pw, ph, ph / 2);
         ctx.fill();
         ctx.font = font('bold', size);
