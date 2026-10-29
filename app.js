@@ -69,7 +69,6 @@
       name: 'Project Two',
       website: 'projectwo.com',
       instagram: '@projectwo',
-      linkedin: 'Project Two',
     },
     hook: {
       title: 'Tvůj web *ztrácí* zákazníky. Tady je proč.',
@@ -135,10 +134,9 @@
     }
   }
 
-  /** Staré výchozí názvy „ProjectWO“ → název z loga. */
+  /** Starý výchozí název „ProjectWO“ → název z loga. */
   function migrateBrand(brand) {
     if (brand.name === 'ProjectWO') brand.name = 'Project Two';
-    if (brand.linkedin === 'ProjectWO') brand.linkedin = 'Project Two';
     return brand;
   }
 
@@ -613,6 +611,12 @@
       ctx.textAlign = 'right';
       ctx.fillText(state.hook.swipe || 'Swipe', W - M - 52, y);
       drawIcon(ctx, 'arrow', W - M - 16, y, 30, C.muted);
+    } else if (rightKind === 'site' && state.brand.website) {
+      // Poslední slajd: odkaz na web
+      ctx.font = font('regular', 26);
+      ctx.fillStyle = C.muted;
+      ctx.textAlign = 'right';
+      ctx.fillText(state.brand.website, W - M, y);
     }
   }
 
@@ -729,151 +733,83 @@
     drawFooter(ctx, 'subtle', idx, n);
   }
 
+  /**
+   * Promo slajd – stejný rukopis jako ostatní slajdy: logo nahoře,
+   * velká pointa, jedna jasná výzva a výzva ke sledování. Žádné rámečky navíc.
+   */
   function drawPromoSlide(ctx, slide, idx, n) {
     const d = slide.data;
-    const cx = W / 2;
+    const keyword = (d.keyword || '').trim();
 
-    // Malé logo v hlavičce tu není – promo slajd má logo velké uprostřed.
+    drawHeader(ctx);
+
     layoutFit((s) => {
       const blocks = [];
-
-      // --- Logo (zmenší se, aby se vešlo na šířku) ---
-      let size = 104 * s;
-      let logo = brandLogo(ctx, size);
-      while (logo.w > W - 2 * M && size > 30) {
-        size -= 4;
-        logo = brandLogo(ctx, size);
-      }
-      const big = logo;
-      blocks.push({ h: big.h, draw: (y) => big.draw(cx - big.w / 2, y + big.h / 2) });
-
-      if (state.brand.website) {
-        blocks.push(spacer(14 * s));
-        blocks.push(textBlock(ctx, {
-          text: state.brand.website, size: 30 * s, color: C.muted, align: 'center', x: cx, tracking: 4,
-        }));
-      }
-
-      blocks.push(spacer(50 * s));
-      blocks.push({ h: 2, draw: (y) => { ctx.fillStyle = C.lineStrong; ctx.fillRect(cx - 50, y, 100, 2); } });
-      blocks.push(spacer(50 * s));
-
-      // --- Pointa / shrnutí ---
       if (d.title) {
         blocks.push(textBlock(ctx, {
-          text: d.title, family: 'bold', size: 70 * s, color: C.white, lineHeight: 1.1,
-          align: 'center', x: cx, tracking: -0.5,
+          text: d.title, family: 'bold', size: 100 * s, color: C.white, lineHeight: 1.05, tracking: -1,
         }));
       }
       if (d.body) {
-        blocks.push(spacer(24 * s));
-        blocks.push(textBlock(ctx, {
-          text: d.body, size: 36 * s, color: '#A1A1A6', lineHeight: 1.4, align: 'center', x: cx, maxWidth: 820,
-        }));
-      }
-
-      // --- Klíčové slovo do komentáře ---
-      if (d.keyword && d.keyword.trim()) {
-        blocks.push(spacer(50 * s));
-        blocks.push(textBlock(ctx, {
-          text: 'Napiš do komentáře', size: 22 * s, color: C.muted, align: 'center', x: cx,
-          tracking: 4, uppercase: true,
-        }));
-        blocks.push(spacer(16 * s));
-        blocks.push(keywordPill(ctx, d.keyword.trim(), cx, s));
-      }
-
-      // --- Výzva k akci ---
-      if (d.cta) {
         blocks.push(spacer(36 * s));
         blocks.push(textBlock(ctx, {
-          text: d.cta, family: 'bold', size: 36 * s, color: C.text, lineHeight: 1.3,
-          align: 'center', x: cx, maxWidth: 820,
+          text: d.body, size: 40 * s, color: '#A1A1A6', lineHeight: 1.38, maxWidth: 840,
         }));
       }
-
-      // --- Řada akčních ikon: komentuj / ulož / sdílej ---
-      blocks.push(spacer(48 * s));
-      blocks.push(actionRow(ctx, cx, s));
+      if (keyword || d.cta) {
+        blocks.push(spacer(64 * s));
+        blocks.push(ctaRow(ctx, keyword, d.cta, s));
+      }
+      if (d.follow) {
+        blocks.push(spacer(40 * s));
+        blocks.push(textBlock(ctx, {
+          text: d.follow, size: 30 * s, color: C.muted, lineHeight: 1.3,
+        }));
+      }
       return blocks;
-    }, 120, H - 280, 0.5);
+    }, 230, H - 220, 0.62);
 
-    // Patička promo slajdu: výzva ke sledování + sítě, pod nimi tečky
-    drawDivider(ctx, H - 256);
-    if (d.follow) {
-      const f = textBlock(ctx, {
-        text: d.follow, family: 'bold', size: 30, color: C.white, align: 'center', x: cx, lineHeight: 1.2,
-      });
-      f.draw(H - 228);
+    drawFooter(ctx, 'site', idx, n);
+  }
+
+  /** Oranžová pilulka se slovem do komentáře + text výzvy vedle ní. */
+  function ctaRow(ctx, keyword, cta, s) {
+    let pill = null;
+    if (keyword) {
+      const size = 44 * s;
+      const label = keyword.toUpperCase();
+      ctx.font = font('bold', size);
+      setTracking(ctx, 2);
+      const tw = Math.min(ctx.measureText(label).width, 420);
+      setTracking(ctx, 0);
+      const ph = size * 1.9;
+      pill = { size, label, tw, w: tw + ph * 0.9, h: ph };
     }
-    const socials = [
-      state.brand.instagram && `IG  ${state.brand.instagram}`,
-      state.brand.linkedin && `in  ${state.brand.linkedin}`,
-      state.brand.website,
-    ].filter(Boolean).join('   ·   ');
-    ctx.font = font('regular', 25);
-    ctx.fillStyle = C.muted;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(socials, cx, H - 160, W - 2 * M);
+    const gap = pill ? 32 * s : 0;
+    const textX = M + (pill ? pill.w + gap : 0);
+    const text = cta ? textBlock(ctx, {
+      text: cta, family: 'bold', size: 34 * s, color: C.white, lineHeight: 1.25,
+      x: textX, maxWidth: W - M - textX,
+    }) : null;
+    const h = Math.max(pill ? pill.h : 0, text ? text.h : 0);
 
-    drawDots(ctx, idx, n);
-  }
-
-  function keywordPill(ctx, keyword, cx, s) {
-    const size = 64 * s;
-    ctx.font = font('bold', size);
-    setTracking(ctx, 3);
-    const label = keyword.toUpperCase();
-    const tw = Math.min(ctx.measureText(label).width, W - 2 * M - 120);
-    setTracking(ctx, 0);
-    const ph = size * 1.7;
-    const pw = tw + 110 * s;
-    return {
-      h: ph,
-      draw(y) {
-        ctx.fillStyle = C.ember;
-        roundRectPath(ctx, cx - pw / 2, y, pw, ph, ph / 2);
-        ctx.fill();
-        ctx.font = font('bold', size);
-        setTracking(ctx, 3);
-        ctx.fillStyle = '#0D0D0D';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, cx + 1.5, y + ph / 2 + 2, tw);
-        setTracking(ctx, 0);
-      },
-    };
-  }
-
-  function actionRow(ctx, cx, s) {
-    const items = [
-      { icon: 'comment', label: 'Komentuj' },
-      { icon: 'save', label: 'Ulož' },
-      { icon: 'share', label: 'Sdílej' },
-    ];
-    const d = 92 * s;
-    const gap = 150 * s;
-    const labelSize = 22 * s;
-    const h = d + 18 * s + labelSize * 1.2;
     return {
       h,
       draw(y) {
-        const startX = cx - gap;
-        items.forEach((it, i) => {
-          const x = startX + i * gap;
-          ctx.strokeStyle = C.lineStrong;
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(x, y + d / 2, d / 2, 0, Math.PI * 2);
-          ctx.stroke();
-          drawIcon(ctx, it.icon, x, y + d / 2, d * 0.42, C.white);
-          ctx.font = font('regular', labelSize);
-          ctx.fillStyle = C.muted;
+        if (pill) {
+          const py = y + (h - pill.h) / 2;
+          ctx.fillStyle = C.ember;
+          roundRectPath(ctx, M, py, pill.w, pill.h, pill.h / 2);
+          ctx.fill();
+          ctx.font = font('bold', pill.size);
+          setTracking(ctx, 2);
+          ctx.fillStyle = '#0D0D0D';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(it.label, x, y + d + 18 * s + labelSize * 0.6);
-        });
+          ctx.fillText(pill.label, M + pill.w / 2 + 1, py + pill.h / 2 + 2, pill.tw);
+          setTracking(ctx, 0);
+        }
+        if (text) text.draw(y + (h - text.h) / 2);
       },
     };
   }
@@ -1062,7 +998,6 @@
     $('#brandName').value = state.brand.name;
     $('#brandWebsite').value = state.brand.website;
     $('#brandInstagram').value = state.brand.instagram;
-    $('#brandLinkedin').value = state.brand.linkedin;
   }
 
   function bindEvents() {
@@ -1084,7 +1019,7 @@
     });
 
     const brandMap = {
-      brandName: 'name', brandWebsite: 'website', brandInstagram: 'instagram', brandLinkedin: 'linkedin',
+      brandName: 'name', brandWebsite: 'website', brandInstagram: 'instagram',
     };
     Object.entries(brandMap).forEach(([id, key]) => {
       $(`#${id}`).addEventListener('input', (e) => {
