@@ -27,6 +27,8 @@
     line: '#262626',
     lineStrong: '#3A3A3A',
     card: '#1A1A1A',
+    ember: '#FF672A', // akcentová barva z projectwo.com
+    dot: '#3A3A3A',
   };
 
   const CTA_TYPES = {
@@ -492,32 +494,29 @@
     ctx.fillRect(0, 0, W, H);
   }
 
-  function drawProgress(ctx, idx, n) {
-    const gap = 10;
-    const segW = (W - 2 * M - gap * (n - 1)) / n;
+  // Tečky jsou na všech slajdech na stejném místě – při swipu „neskáčou“.
+  const DOTS_Y = H - 98;
+
+  /** Tečkový indikátor: jedna tečka na slajd, aktuální je oranžová (ember) a větší. */
+  function drawDots(ctx, idx, n) {
+    const gap = 30;
+    const startX = W / 2 - (gap * (n - 1)) / 2;
     for (let i = 0; i < n; i++) {
-      ctx.fillStyle = i === idx ? C.white : i < idx ? '#5C5C60' : C.line;
-      roundRectPath(ctx, M + i * (segW + gap), 70, segW, 4, 2);
+      const active = i === idx;
+      ctx.fillStyle = active ? C.ember : C.dot;
+      ctx.beginPath();
+      ctx.arc(startX + i * gap, DOTS_Y, active ? 8 : 5.5, 0, Math.PI * 2);
       ctx.fill();
     }
   }
 
-  function drawHeader(ctx, idx, n) {
-    const y = 130;
+  function drawHeader(ctx) {
     ctx.textBaseline = 'middle';
-
     ctx.font = font('bold', 26);
     setTracking(ctx, 5);
     ctx.fillStyle = C.text;
     ctx.textAlign = 'left';
-    ctx.fillText(state.brand.name.toUpperCase(), M, y);
-    setTracking(ctx, 0);
-
-    ctx.font = font('regular', 26);
-    setTracking(ctx, 2);
-    ctx.fillStyle = C.muted;
-    ctx.textAlign = 'right';
-    ctx.fillText(`${pad2(idx + 1)} / ${pad2(n)}`, W - M, y);
+    ctx.fillText(state.brand.name.toUpperCase(), M, 112);
     setTracking(ctx, 0);
   }
 
@@ -526,10 +525,11 @@
     ctx.fillRect(M, y, W - 2 * M, 2);
   }
 
-  /** Spodní lišta: handle vlevo, indikátor posunu vpravo. */
-  function drawFooter(ctx, rightKind) {
-    const y = H - 98;
+  /** Spodní lišta: handle vlevo, tečky uprostřed, indikátor posunu vpravo. */
+  function drawFooter(ctx, rightKind, idx, n) {
+    const y = DOTS_Y;
     drawDivider(ctx, H - 160);
+    drawDots(ctx, idx, n);
 
     ctx.font = font('regular', 26);
     ctx.fillStyle = C.muted;
@@ -582,8 +582,7 @@
     });
     ctx.restore();
 
-    drawProgress(ctx, idx, n);
-    drawHeader(ctx, idx, n);
+    drawHeader(ctx);
 
     layoutFit((s) => {
       const blocks = [];
@@ -603,7 +602,7 @@
       return blocks;
     }, 230, H - 220, 0.62);
 
-    drawFooter(ctx, 'pill');
+    drawFooter(ctx, 'pill', idx, n);
   }
 
   function eyebrowPill(ctx, text, x, align) {
@@ -685,8 +684,7 @@
     ctx.fillText(pad2(slide.contentIndex + 1), W - M + 30, 560);
     ctx.restore();
 
-    drawProgress(ctx, idx, n);
-    drawHeader(ctx, idx, n);
+    drawHeader(ctx);
 
     const bottom = H - 210;
     const cardH = d.cta && d.cta.trim() ? interactionCard(ctx, d.ctaType, d.cta, bottom) : 0;
@@ -694,8 +692,6 @@
 
     layoutFit((s) => {
       const blocks = [
-        eyebrowPill(ctx, `${pad2(slide.contentIndex + 1)} / ${pad2(slide.contentCount)}`, M, 'left'),
-        spacer(48 * s),
         textBlock(ctx, {
           text: d.title, family: 'bold', size: 84 * s, color: C.white, lineHeight: 1.08, tracking: -0.5,
         }),
@@ -709,15 +705,14 @@
       return blocks;
     }, 250, contentBottom, 0);
 
-    drawFooter(ctx, 'subtle');
+    drawFooter(ctx, 'subtle', idx, n);
   }
 
   function drawPromoSlide(ctx, slide, idx, n) {
     const d = slide.data;
     const cx = W / 2;
 
-    drawProgress(ctx, idx, n);
-    drawHeader(ctx, idx, n);
+    drawHeader(ctx);
 
     layoutFit((s) => {
       const blocks = [];
@@ -794,15 +789,15 @@
       blocks.push(spacer(48 * s));
       blocks.push(actionRow(ctx, cx, s));
       return blocks;
-    }, 210, H - 230, 0.5);
+    }, 190, H - 280, 0.5);
 
-    // Patička promo slajdu: výzva ke sledování + sítě
-    drawDivider(ctx, H - 196);
+    // Patička promo slajdu: výzva ke sledování + sítě, pod nimi tečky
+    drawDivider(ctx, H - 256);
     if (d.follow) {
       const f = textBlock(ctx, {
         text: d.follow, family: 'bold', size: 30, color: C.white, align: 'center', x: cx, lineHeight: 1.2,
       });
-      f.draw(H - 160);
+      f.draw(H - 228);
     }
     const socials = [
       state.brand.instagram && `IG  ${state.brand.instagram}`,
@@ -813,7 +808,9 @@
     ctx.fillStyle = C.muted;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(socials, cx, H - 82, W - 2 * M);
+    ctx.fillText(socials, cx, H - 160, W - 2 * M);
+
+    drawDots(ctx, idx, n);
   }
 
   function keywordPill(ctx, keyword, cx, s) {
