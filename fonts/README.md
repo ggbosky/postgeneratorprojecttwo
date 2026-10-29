@@ -1,12 +1,14 @@
-# Firemní fonty
+# Firemní fonty ProjectWO
 
-Sem nahrajte soubory fontů ProjectWO s **přesně těmito názvy**:
+Licence: SIL Open Font License 1.1 (`LICENCE-OFL.txt`), zdarma i pro komerční použití.
 
-| Styl | Název souboru |
-|------|---------------|
-| Bold (nadpisy) | `BrandFont-Bold.woff2` (nebo `.woff` / `.otf` / `.ttf`) |
-| Regular (text) | `BrandFont-Regular.woff2` (nebo `.woff` / `.otf` / `.ttf`) |
+| Role v aplikaci | Font | Soubory |
+|-----------------|------|---------|
+| `BrandFont-Bold` (nadpisy) | Inter Tight SemiBold 600 | `inter-tight-latin(-ext)-600-normal.woff2` |
+| `BrandFont-Regular` (text, UI) | Inter Regular 400 | `inter-latin(-ext)-400-normal.woff2` |
+| `BrandFont-Accent` (akcentová kurzíva) | Instrument Serif Italic | `instrument-serif-latin(-ext)-400-italic.woff2` |
 
-Stačí jeden formát od každého stylu – `@font-face` ve `style.css` zkouší
-woff2 → woff → otf → ttf. Když soubory chybí, aplikace použije systémový
-sans-serif a v pravém horním rohu ukáže „Záložní font“.
+Každý řez je rozdělený na `latin` a `latin-ext` (česká diakritika). `@font-face`
+ve `style.css` je propojuje přes `unicode-range`.
+
+Akcentovou kurzívu zapneš ve slajdu hvězdičkami: `Tvůj web *ztrácí* zákazníky`.

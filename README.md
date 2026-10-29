@@ -10,8 +10,9 @@ carousel postů 1080 × 1350 px (4:5) pro Instagram a LinkedIn.
 
 ## Firemní fonty
 
-Nahrajte soubory do složky [`fonts/`](fonts/README.md) jako
-`BrandFont-Bold.*` a `BrandFont-Regular.*`.
+Fonty jsou ve složce [`fonts/`](fonts/README.md): Inter Tight (nadpisy), Inter
+(text) a Instrument Serif Italic (akcent). Slovo v `*hvězdičkách*` se na slajdu
+vykreslí akcentovou kurzívou.
 
 ## Spuštění
 

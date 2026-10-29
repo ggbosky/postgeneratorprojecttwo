@@ -2,30 +2,62 @@
    ProjectWO – Carousel Generator
    ========================================================= */
 
-/* ---------- Firemní fonty ----------
-   Soubory nahrajte do složky /fonts se stejnými názvy.
-   Stačí jeden z formátů (woff2 je nejmenší), ostatní se přeskočí.
-   Když se fonty nenačtou, použije se systémový sans-serif fallback. */
+/* ---------- Firemní fonty ProjectWO (SIL OFL 1.1, viz fonts/LICENCE-OFL.txt) ----------
+   BrandFont-Bold    → Inter Tight SemiBold (nadpisy)
+   BrandFont-Regular → Inter Regular (text a UI)
+   BrandFont-Accent  → Instrument Serif Italic (akcentová kurzíva, *slovo* v textu)
+   Každý řez má dvě podmnožiny: latin + latin-ext (česká diakritika).
+   font-weight jako rozsah => prohlížeč nepřidává umělé ztučnění.
+   Když se fonty nenačtou, použije se systémový fallback. */
 @font-face {
   font-family: "BrandFont-Bold";
-  src: url("fonts/BrandFont-Bold.woff2") format("woff2"),
-       url("fonts/BrandFont-Bold.woff") format("woff"),
-       url("fonts/BrandFont-Bold.otf") format("opentype"),
-       url("fonts/BrandFont-Bold.ttf") format("truetype");
-  font-weight: 100 900; /* rozsah => prohlížeč nepřidá umělé ztučnění */
+  src: url("fonts/inter-tight-latin-600-normal.woff2") format("woff2");
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "BrandFont-Bold";
+  src: url("fonts/inter-tight-latin-ext-600-normal.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 @font-face {
   font-family: "BrandFont-Regular";
-  src: url("fonts/BrandFont-Regular.woff2") format("woff2"),
-       url("fonts/BrandFont-Regular.woff") format("woff"),
-       url("fonts/BrandFont-Regular.otf") format("opentype"),
-       url("fonts/BrandFont-Regular.ttf") format("truetype");
-  font-weight: 100 900; /* rozsah => prohlížeč nepřidá umělé ztučnění */
+  src: url("fonts/inter-latin-400-normal.woff2") format("woff2");
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "BrandFont-Regular";
+  src: url("fonts/inter-latin-ext-400-normal.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "BrandFont-Accent";
+  src: url("fonts/instrument-serif-latin-400-italic.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "BrandFont-Accent";
+  src: url("fonts/instrument-serif-latin-ext-400-italic.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 /* ---------- Design tokeny ---------- */
@@ -43,6 +75,7 @@
 
   --font-bold: "BrandFont-Bold", "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif;
   --font-regular: "BrandFont-Regular", "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif;
+  --font-accent: "BrandFont-Accent", Georgia, "Times New Roman", serif;
 
   --radius: 14px;
   --radius-sm: 10px;

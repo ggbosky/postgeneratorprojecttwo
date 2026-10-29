@@ -16,6 +16,8 @@
   const FALLBACK = '"Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif';
   const FONT_BOLD = `"BrandFont-Bold", ${FALLBACK}`;
   const FONT_REGULAR = `"BrandFont-Regular", ${FALLBACK}`;
+  const FONT_ACCENT = '"BrandFont-Accent", Georgia, "Times New Roman", serif';
+  const ACCENT_SCALE = 1.12; // Instrument Serif má menší x-výšku než Inter
 
   const C = {
     text: '#F5F5F7',
@@ -37,21 +39,21 @@
   const PROMO_TEMPLATES = {
     follow: {
       label: 'Sledování',
-      title: 'Dobrý web nemusí být drahý ani složitý.',
+      title: 'Dobrý web nemusí být *drahý* ani složitý.',
       body: 'Navrhneme ho, postavíme a postaráme se o něj. Online do tří týdnů.',
       keyword: '',
       cta: 'Sleduj nás pro další tipy, jak z webu udělat obchodníka, který maká 24/7.',
     },
     comment: {
       label: 'Slovo do komentáře',
-      title: 'Chceš vědět, co brzdí tvůj web?',
+      title: 'Chceš vědět, co *brzdí* tvůj web?',
       body: 'Pošleme ti zdarma krátkou analýzu s konkrétními doporučeními.',
       keyword: 'WEB',
       cta: 'Napiš to slovo do komentáře a ozveme se ti.',
     },
     save: {
       label: 'Uložení',
-      title: 'Ulož si to na později.',
+      title: 'Ulož si to *na později.*',
       body: 'Až budeš řešit nový web nebo redesign, tenhle checklist se ti bude hodit.',
       keyword: '',
       cta: 'Ulož si post a pošli ho někomu, kdo právě řeší web.',
@@ -69,7 +71,7 @@
     },
     hook: {
       eyebrow: 'Web pro malé firmy',
-      title: 'Tvůj web ztrácí zákazníky. Tady je proč.',
+      title: 'Tvůj web *ztrácí* zákazníky. Tady je proč.',
       subtitle: 'Chyby, které u malých firem vidíme nejčastěji – a jak je opravit.',
       swipe: 'Swipe',
     },
@@ -87,7 +89,7 @@
         cta: 'Ulož si tento slajd a projdi svůj web na mobilu.',
       },
       {
-        title: 'Chybí jasná výzva k akci',
+        title: 'Chybí jasná *výzva k akci*',
         body: 'Návštěvník musí do pár vteřin vědět, co má udělat: zavolat, objednat, napsat. Jedno výrazné tlačítko udělá víc než deset odstavců textu.',
         ctaType: 'comment',
         cta: 'Který bod je tvůj favorite? 1, 2, nebo 3?',
@@ -181,54 +183,143 @@
   }
 
   function font(family, size) {
-    return `${family === 'bold' ? '700' : '400'} ${Math.round(size)}px ${family === 'bold' ? FONT_BOLD : FONT_REGULAR}`;
+    const px = `${Math.round(size)}px`;
+    if (family === 'accent') return `italic 400 ${px} ${FONT_ACCENT}`;
+    return family === 'bold' ? `700 ${px} ${FONT_BOLD}` : `400 ${px} ${FONT_REGULAR}`;
   }
 
   function setTracking(ctx, px) {
     if ('letterSpacing' in ctx) ctx.letterSpacing = `${px}px`;
   }
 
+  /** Fonty pro jeden textový blok: základní řez + akcentová kurzíva. */
+  function makeFonts(family, size) {
+    return { base: font(family, size), accent: font('accent', size * ACCENT_SCALE) };
+  }
+
+  /** Rozdělí odstavec na úseky; text v *hvězdičkách* je akcent (Instrument Serif Italic). */
+  function parseRuns(para) {
+    const runs = [];
+    let last = 0;
+    para.replace(/\*([^*]+)\*/g, (match, inner, idx) => {
+      if (idx > last) runs.push({ text: para.slice(last, idx), accent: false });
+      runs.push({ text: inner, accent: true });
+      last = idx + match.length;
+      return match;
+    });
+    if (last < para.length) runs.push({ text: para.slice(last), accent: false });
+    return runs;
+  }
+
+  /** Úseky → slova. Slovo je pole částí, láme se jen na běžné mezeře. */
+  function toWords(runs) {
+    const words = [];
+    let current = [];
+    runs.forEach(({ text, accent }) => {
+      text.split(/( +)/).forEach((piece) => {
+        if (!piece) return;
+        if (piece.trim() === '' && piece.includes(' ')) {
+          if (current.length) words.push(current);
+          current = [];
+        } else {
+          current.push({ text: piece, accent });
+        }
+      });
+    });
+    if (current.length) words.push(current);
+    return words;
+  }
+
+  function partWidth(ctx, fonts, part) {
+    ctx.font = part.accent ? fonts.accent : fonts.base;
+    return ctx.measureText(part.text).width;
+  }
+
+  function wordWidth(ctx, fonts, word) {
+    return word.reduce((w, part) => w + partWidth(ctx, fonts, part), 0);
+  }
+
+  /** Slovo delší než řádek rozdělí po znacích na kusy, které se vejdou. */
+  function splitLongWord(ctx, fonts, word, maxWidth) {
+    const chunks = [];
+    let chunk = [];
+    let w = 0;
+    for (const part of word) {
+      for (const ch of part.text) {
+        const cw = partWidth(ctx, fonts, { text: ch, accent: part.accent });
+        if (w + cw > maxWidth && chunk.length) {
+          chunks.push(chunk);
+          chunk = [];
+          w = 0;
+        }
+        const prev = chunk[chunk.length - 1];
+        if (prev && prev.accent === part.accent) prev.text += ch;
+        else chunk.push({ text: ch, accent: part.accent });
+        w += cw;
+      }
+    }
+    if (chunk.length) chunks.push(chunk);
+    return chunks;
+  }
+
   /**
    * Zalomí text do řádků podle maxWidth.
-   * Respektuje ručně zadané nové řádky, dlouhá slova láme po znacích.
+   * Respektuje ručně zadané nové řádky, *akcentová* slova a dlouhá slova láme po znacích.
+   * Vrací { lines: [{ words, width }], space }.
    */
-  function wrapText(ctx, text, maxWidth) {
+  function wrapText(ctx, text, maxWidth, fonts) {
     const lines = [];
-    const paragraphs = czechNbsp(text).split(/\r?\n/);
+    ctx.font = fonts.base;
+    const space = ctx.measureText(' ').width;
 
-    for (const para of paragraphs) {
-      const words = para.split(/ +/).filter(Boolean);
+    for (const para of czechNbsp(text).split(/\r?\n/)) {
+      const words = toWords(parseRuns(para));
       if (!words.length) {
-        lines.push('');
+        lines.push({ words: [], width: 0 });
         continue;
       }
-      let line = '';
+      let line = { words: [], width: 0 };
+      const pushWord = (word, w) => {
+        line.width += (line.words.length ? space : 0) + w;
+        line.words.push(word);
+      };
+
       for (const word of words) {
-        const test = line ? `${line} ${word}` : word;
-        if (ctx.measureText(test).width <= maxWidth) {
-          line = test;
+        const w = wordWidth(ctx, fonts, word);
+        const needed = line.words.length ? line.width + space + w : w;
+        if (needed <= maxWidth) {
+          pushWord(word, w);
           continue;
         }
-        if (line) lines.push(line);
-        // Slovo samo o sobě je delší než řádek → rozdělit po znacích.
-        if (ctx.measureText(word).width > maxWidth) {
-          let chunk = '';
-          for (const ch of word) {
-            if (ctx.measureText(chunk + ch).width > maxWidth && chunk) {
-              lines.push(chunk);
-              chunk = ch;
-            } else {
-              chunk += ch;
-            }
-          }
-          line = chunk;
+        if (line.words.length) lines.push(line);
+        line = { words: [], width: 0 };
+        if (w > maxWidth) {
+          const chunks = splitLongWord(ctx, fonts, word, maxWidth);
+          const tail = chunks.pop();
+          chunks.forEach((c) => lines.push({ words: [c], width: wordWidth(ctx, fonts, c) }));
+          pushWord(tail, wordWidth(ctx, fonts, tail));
         } else {
-          line = word;
+          pushWord(word, w);
         }
       }
-      if (line) lines.push(line);
+      if (line.words.length) lines.push(line);
     }
-    return lines;
+    return { lines, space };
+  }
+
+  function drawLine(ctx, fonts, line, space, x, y, align) {
+    let cx = x;
+    if (align === 'center') cx = x - line.width / 2;
+    else if (align === 'right') cx = x - line.width;
+    ctx.textAlign = 'left';
+    line.words.forEach((word, i) => {
+      if (i) cx += space;
+      word.forEach((part) => {
+        ctx.font = part.accent ? fonts.accent : fonts.base;
+        ctx.fillText(part.text, cx, y);
+        cx += ctx.measureText(part.text).width;
+      });
+    });
   }
 
   // =========================================================
@@ -242,20 +333,21 @@
       lineHeight = 1.3, align = 'left', x = M, tracking = 0, uppercase = false,
     } = opts;
     const content = uppercase ? String(text || '').toUpperCase() : text;
-    ctx.font = font(family, size);
+    const fonts = makeFonts(family, size);
     setTracking(ctx, tracking);
-    const lines = wrapText(ctx, content, maxWidth);
+    const { lines, space } = wrapText(ctx, content, maxWidth, fonts);
+    // Účaří tak, aby verzálky ležely opticky uprostřed řádku (i při mixu fontů).
+    ctx.font = fonts.base;
+    const capHalf = (ctx.measureText('H').actualBoundingBoxAscent || size * 0.72) / 2;
     setTracking(ctx, 0);
     const lh = size * lineHeight;
     return {
       h: lines.length * lh,
       draw(y) {
-        ctx.font = font(family, size);
         setTracking(ctx, tracking);
         ctx.fillStyle = color;
-        ctx.textAlign = align;
-        ctx.textBaseline = 'middle';
-        lines.forEach((ln, i) => ctx.fillText(ln, x, y + lh * i + lh / 2));
+        ctx.textBaseline = 'alphabetic';
+        lines.forEach((ln, i) => drawLine(ctx, fonts, ln, space, x, y + lh * i + lh / 2 + capHalf, align));
         setTracking(ctx, 0);
       },
     };
@@ -859,14 +951,14 @@
       if (slide.type === 'hook') {
         editorsEl.appendChild(editorCard(num, 'Hook / titulní', [
           { path: 'hook.eyebrow', label: 'Štítek nad nadpisem', maxlength: 40 },
-          { path: 'hook.title', label: 'Nadpis (hook)', type: 'textarea', rows: 3, hint: 'Krátce a zvědavě – ideálně do 8 slov.' },
+          { path: 'hook.title', label: 'Nadpis (hook)', type: 'textarea', rows: 3, hint: 'Krátce a zvědavě – ideálně do 8 slov. *Slovo v hvězdičkách* = akcentová kurzíva.' },
           { path: 'hook.subtitle', label: 'Podnadpis', type: 'textarea', rows: 2 },
           { path: 'hook.swipe', label: 'Indikátor posunu', maxlength: 20 },
         ]));
       } else if (slide.type === 'content') {
         const c = slide.contentIndex;
         editorsEl.appendChild(editorCard(num, `Obsah ${c + 1}`, [
-          { path: `content.${c}.title`, label: 'Nadpis', type: 'textarea', rows: 2 },
+          { path: `content.${c}.title`, label: 'Nadpis', type: 'textarea', rows: 2, hint: 'Tip: *slovo* v hvězdičkách se vykreslí kurzívou Instrument Serif.' },
           { path: `content.${c}.body`, label: 'Hlavní text', type: 'textarea', rows: 4 },
           { path: `content.${c}.ctaType`, label: 'Typ mikro-výzvy', type: 'select', options: ctaOptions },
           { path: `content.${c}.cta`, label: 'Výzva k interakci (volitelná)', type: 'textarea', rows: 2, hint: 'Otázka nebo výzva zvyšuje komentáře a uložení.' },
@@ -874,7 +966,7 @@
       } else {
         editorsEl.appendChild(editorCard(num, 'Promo & CTA (povinný)', [
           { path: 'promo.template', label: 'Šablona', type: 'select', options: templateOptions },
-          { path: 'promo.title', label: 'Pointa / shrnutí', type: 'textarea', rows: 2 },
+          { path: 'promo.title', label: 'Pointa / shrnutí', type: 'textarea', rows: 2, hint: '*Slovo* v hvězdičkách = akcentová kurzíva.' },
           { path: 'promo.body', label: 'Doplňující text', type: 'textarea', rows: 2 },
           { path: 'promo.keyword', label: 'Slovo do komentáře (volitelné)', maxlength: 20 },
           { path: 'promo.cta', label: 'Výzva k akci', type: 'textarea', rows: 2 },
@@ -1065,12 +1157,16 @@
   //  Fonty
   // =========================================================
 
+  // Ukázkový text s diakritikou → načte se i podmnožina latin-ext (č, ř, ž…).
+  const FONT_SAMPLE = 'AaBbHh0123 ČčŘřŽžŠšĚěŮůÁáÍíÉéÝý';
+
+  /** Rodina je načtená, když jsou načtené všechny její soubory (latin + latin-ext). */
   function brandFaceLoaded(family) {
-    let ok = false;
+    const faces = [];
     document.fonts.forEach((f) => {
-      if (f.family.replace(/["']/g, '') === family && f.status === 'loaded') ok = true;
+      if (f.family.replace(/["']/g, '') === family) faces.push(f);
     });
-    return ok;
+    return faces.length > 0 && faces.every((f) => f.status === 'loaded');
   }
 
   async function loadFonts() {
@@ -1082,18 +1178,21 @@
     }
     try {
       await Promise.all([
-        document.fonts.load('700 64px "BrandFont-Bold"'),
-        document.fonts.load('400 64px "BrandFont-Regular"'),
+        document.fonts.load('700 64px "BrandFont-Bold"', FONT_SAMPLE),
+        document.fonts.load('400 64px "BrandFont-Regular"', FONT_SAMPLE),
+        document.fonts.load('italic 400 64px "BrandFont-Accent"', FONT_SAMPLE),
       ]);
     } catch (e) { /* soubor chybí → fallback */ }
 
     const bold = brandFaceLoaded('BrandFont-Bold');
     const regular = brandFaceLoaded('BrandFont-Regular');
-    if (bold && regular) {
+    const accent = brandFaceLoaded('BrandFont-Accent');
+    if (bold && regular && accent) {
       status.textContent = 'Firemní fonty načteny';
       status.className = 'pill pill--ok';
+      status.title = 'Inter Tight · Inter · Instrument Serif';
     } else {
-      const missing = [!bold && 'Bold', !regular && 'Regular'].filter(Boolean).join(' + ');
+      const missing = [!bold && 'Bold', !regular && 'Regular', !accent && 'Accent'].filter(Boolean).join(' + ');
       status.textContent = `Záložní font (chybí ${missing})`;
       status.className = 'pill pill--warn';
       status.title = 'Nahraj soubory do složky /fonts – viz fonts/README.md';
@@ -1111,6 +1210,8 @@
     buildPreview(); // první vykreslení hned (s fallbackem)
     await loadFonts();
     renderAll(); // znovu, jakmile jsou fonty k dispozici
+    // Pojistka: dočtené soubory (např. latin-ext) → překreslit.
+    if (document.fonts) document.fonts.addEventListener('loadingdone', scheduleRender);
   }
 
   init();
