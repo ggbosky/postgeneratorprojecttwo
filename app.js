@@ -62,6 +62,8 @@
   const DEFAULT_STATE = {
     count: 5,
     bg: '#0D0D0D',
+    topicId: null, // téma z knihovny (topics.js), ze kterého jsou texty
+    recentTopics: [], // naposledy použitá témata – náhoda je hned neopakuje
     brand: {
       name: 'Project Two',
       website: 'projectwo.com',
@@ -194,6 +196,7 @@
     return String(text || '')
       .replace(re, '$1$2\u00A0')
       .replace(re, '$1$2\u00A0')
+      .replace(/(\d) +(?=\d{3}(?!\d))/g, '$1\u00A0') // „10 000“ se neláme
       .replace(/(\d) +(?=\p{L})/gu, '$1\u00A0'); // „3 sekundy“ na jednom řádku
   }
 
@@ -995,10 +998,28 @@
     $('#resetBtn').addEventListener('click', () => {
       if (!confirm('Obnovit výchozí texty všech slajdů? Branding zůstane zachován.')) return;
       const fresh = clone(DEFAULT_STATE);
-      state = { ...fresh, brand: state.brand, count: state.count, bg: state.bg };
+      state = { ...fresh, brand: state.brand, count: state.count, bg: state.bg, recentTopics: state.recentTopics };
       saveState();
       buildEditors();
       renderAll();
+      updateTopicInfo();
+    });
+
+    $('#topicApply').addEventListener('click', () => {
+      const value = $('#topicSelect').value;
+      const topic = value === 'random' ? pickRandomTopic() : TOPICS.find((t) => t.id === value);
+      if (topic) applyTopic(topic);
+    });
+
+    $('#topicUndo').addEventListener('click', () => {
+      if (!undoSnapshot) return;
+      state = undoSnapshot;
+      undoSnapshot = null;
+      $('#topicUndo').hidden = true;
+      saveState();
+      buildEditors();
+      renderAll();
+      updateTopicInfo();
     });
 
     $('#logoInput').addEventListener('change', (e) => {
@@ -1046,6 +1067,65 @@
 
     saveState();
     scheduleRender();
+  }
+
+  // =========================================================
+  //  Generátor textů – knihovna hotových carouselů (topics.js)
+  // =========================================================
+
+  const TOPIC_LIB = window.PW_TOPICS || { categories: {}, topics: [] };
+  const TOPICS = TOPIC_LIB.topics;
+  let undoSnapshot = null;
+
+  function buildTopicSelect() {
+    const select = $('#topicSelect');
+    select.innerHTML = '';
+    select.appendChild(el('option', { value: 'random', text: `Náhodné téma (${TOPICS.length} témat)` }));
+    Object.entries(TOPIC_LIB.categories).forEach(([key, label]) => {
+      const group = el('optgroup', { label });
+      TOPICS.filter((t) => t.cat === key).forEach((t) => group.appendChild(el('option', { value: t.id, text: t.name })));
+      if (group.children.length) select.appendChild(group);
+    });
+  }
+
+  /** Náhodné téma, které nebylo použito nedávno (ani teď). */
+  function pickRandomTopic() {
+    const recent = new Set([...(state.recentTopics || []), state.topicId]);
+    let pool = TOPICS.filter((t) => !recent.has(t.id));
+    if (!pool.length) pool = TOPICS.filter((t) => t.id !== state.topicId);
+    if (!pool.length) pool = TOPICS;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function applyTopic(topic) {
+    undoSnapshot = clone(state);
+
+    state.hook.title = topic.hook.title;
+    state.hook.subtitle = topic.hook.subtitle;
+    topic.points.forEach((p, i) => {
+      if (state.content[i]) Object.assign(state.content[i], p);
+    });
+    Object.assign(state.promo, {
+      template: 'custom', title: topic.promo.title, body: topic.promo.body, cta: topic.promo.cta,
+    });
+
+    state.topicId = topic.id;
+    // Paměť naposledy použitých témat: zhruba polovina knihovny, ať se náhoda neopakuje.
+    const keep = Math.max(1, Math.floor(TOPICS.length / 2));
+    state.recentTopics = [topic.id, ...(state.recentTopics || []).filter((id) => id !== topic.id)].slice(0, keep);
+
+    saveState();
+    buildEditors();
+    renderAll();
+    updateTopicInfo();
+    $('#topicUndo').hidden = false;
+  }
+
+  function updateTopicInfo() {
+    const info = $('#topicCurrent');
+    const topic = TOPICS.find((t) => t.id === state.topicId);
+    info.hidden = !topic;
+    if (topic) info.textContent = `Téma: ${topic.name} · ${TOPIC_LIB.categories[topic.cat] || ''}`;
   }
 
   // =========================================================
@@ -1100,6 +1180,8 @@
 
   async function init() {
     syncStaticInputs();
+    buildTopicSelect();
+    updateTopicInfo();
     buildEditors();
     bindEvents();
     buildPreview(); // první vykreslení hned (s fallbackem)

@@ -6,7 +6,7 @@
   <title>Project Two – Carousel Generator</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='20 60 758 768'%3E%3Cpath fill='%23FF590E' d='M222 60H630L778 205V378L20 828V605L625 258H22Z M400 632H778V828H82Z'/%3E%3C/svg%3E">
   <meta name="description" content="Generátor virálních carousel postů 1080×1350 px pro Instagram a LinkedIn.">
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
   <header class="topbar">
@@ -80,6 +80,19 @@
         <button type="button" class="btn btn--ghost btn--sm" id="resetBtn">Obnovit výchozí texty</button>
       </div>
 
+      <div class="generator">
+        <div class="generator__intro">
+          <h3>Vymysli texty za mě</h3>
+          <p class="hint">Hotové carousely napsané pro Project Two – hook, tipy s výzvami i promo. Vyber téma, nebo nech výběr na náhodě.</p>
+        </div>
+        <div class="generator__controls">
+          <select id="topicSelect" aria-label="Téma carouselu"></select>
+          <button type="button" class="btn btn--primary" id="topicApply">Vymysli texty</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="topicUndo" hidden>Vrátit zpět</button>
+        </div>
+        <p class="hint generator__current" id="topicCurrent" hidden></p>
+      </div>
+
       <div id="slideEditors" class="slide-editors"></div>
     </section>
 
@@ -113,6 +126,7 @@
     </figure>
   </template>
 
-  <script src="app.js?v=9"></script>
+  <script src="topics.js?v=10"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>

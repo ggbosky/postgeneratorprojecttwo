@@ -7,6 +7,8 @@ carousel postů 1080 × 1350 px (4:5) pro Instagram a LinkedIn.
 - Živý náhled všech slajdů, automatické zalamování a zmenšování textu
 - Export jednotlivých slajdů i celého carouselu (`slide-1.png`, `slide-2.png`, …)
 - Texty se průběžně ukládají v prohlížeči (localStorage)
+- **Vymysli texty za mě:** knihovna hotových carouselů pro Project Two v `topics.js`
+  (21 témat v 6 kategoriích). Nové téma přidáš zkopírováním existujícího bloku.
 
 ## Firemní fonty
 
